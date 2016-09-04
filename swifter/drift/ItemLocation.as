@@ -20,6 +20,7 @@
 				Main.inventoryFull();
 		}
 		public function collectItem(item:Item):void {
+			Main.inventory.push(item);
 			Main.inventoryContainer.addChild(item);
 			item.gotoAndStop(0);
 			item.addEventListener(Event.ENTER_FRAME,toInventory);
