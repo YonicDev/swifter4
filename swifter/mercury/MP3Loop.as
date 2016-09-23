@@ -10,7 +10,15 @@
 		import flash.net.URLRequest;
 		import flash.media.Sound;
 		
-		public static var soundChannel:SoundChannel;
+		private static var soundChannel:SoundChannel;
+		
+		public static function getChannel():SoundChannel {
+			return soundChannel;
+		}
+		
+		public static function getSamplesTotal(sound:Sound,sampleRate:Number=44.1):Number {
+			return sound.length*sampleRate;
+		}
 		
 		public static function playLoop(sound:Sound, samplesTotal:int, loopPoint:int=0, channel:SoundChannel=null, soundTransform:SoundTransform = null):void {
 			const MAGIC_DELAY:Number = 2257.0;// LAME 3.98.2 + flash.media.Sound Delay
@@ -67,102 +75,31 @@
 			startPlayback();
 		}
 		
-		public static function playWebLoop(soundURL:URLRequest, samplesTotal:int, loopPoint:int=0) {
+		public static function playWebLoop(soundURL:URLRequest, samplesTotal:int, loopPoint:int=0, channel:SoundChannel=null, soundTransform:SoundTransform = null):void {
 			const MAGIC_DELAY:Number = 2257.0;// LAME 3.98.2 + flash.media.Sound Delay
 
 			const bufferSize:int = 4096;// Stable playback
 
 			const mp3:Sound = new Sound();// Use for decoding
-			const out:Sound = new Sound();// Use for output stream
 
 
 			var samplesPosition:int = 0;
 
 			function loadMp3():void {
 				mp3.load(soundURL);
-				mp3.addEventListener(Event.COMPLETE,startPlayback);
+				mp3.addEventListener(Event.COMPLETE,beginLoop);
 				mp3.addEventListener(IOErrorEvent.IO_ERROR,mp3Error);
 			}
-			function startPlayback(e:Event):void {
-				out.addEventListener( SampleDataEvent.SAMPLE_DATA, sampleData );
-				out.play();
-			}
-
-			function sampleData( event:SampleDataEvent ):void {
-
-				extract( event.data, bufferSize );
-			}
-
-			function extract( target: ByteArray, length:int ):void {
-				while ( 0 < length ) {
-					if ( samplesPosition + length > samplesTotal ) {
-						var read:int = samplesTotal - samplesPosition;
-
-						mp3.extract( target, read, samplesPosition + MAGIC_DELAY );
-
-						samplesPosition +=  read;
-
-						length -=  read;
-					} else {
-						mp3.extract( target, length, samplesPosition + MAGIC_DELAY );
-
-						samplesPosition +=  length;
-
-						length = 0;
-					}
-
-					if ( samplesPosition == samplesTotal ) {
-						samplesPosition = loopPoint;
-					}
-				}
+			function beginLoop(e:Event):void {
+				playLoop(mp3,samplesTotal, loopPoint, channel:SoundChannel, soundTransform:SoundTransform);
 			}
 			function mp3Error( event:IOErrorEvent ):void {
 				trace( event );
 			}
 			loadMp3();
 		}
-		public static function playLocalLoop(soundClass:Class, samplesTotal:int, loopPoint:int=0) {
-			const MAGIC_DELAY:Number = 2257.0;// LAME 3.98.2 + flash.media.Sound Delay
-
-			const bufferSize:int = 4096;// Stable playback
-
-			const mp3:Sound = new soundClass();// Use for decoding
-			const out:Sound = new Sound();
-			var samplesPosition:int = 0;
-			function startPlayback():void {
-				out.addEventListener( SampleDataEvent.SAMPLE_DATA, sampleData );
-				out.play();
-			}
-
-			function sampleData( event:SampleDataEvent ):void {
-
-				extract( event.data, bufferSize );
-			}
-
-			function extract( target: ByteArray, length:int ):void {
-				while ( 0 < length ) {
-					if ( samplesPosition + length > samplesTotal ) {
-						var read:int = samplesTotal - samplesPosition;
-
-						mp3.extract( target, read, samplesPosition + MAGIC_DELAY );
-
-						samplesPosition +=  read;
-
-						length -=  read;
-					} else {
-						mp3.extract( target, length, samplesPosition + MAGIC_DELAY );
-
-						samplesPosition +=  length;
-
-						length = 0;
-					}
-
-					if ( samplesPosition == samplesTotal ) {
-						samplesPosition = loopPoint;
-					}
-				}
-			}
-			startPlayback();
+		public static function playLocalLoop(soundClass:Class, samplesTotal:int, loopPoint:int=0, channel:SoundChannel=null, soundTransform:SoundTransform = null):void {
+			playLoop(new soundClass(),samplesTotal, loopPoint, channel:SoundChannel, soundTransform:SoundTransform);
 		}
 
 	}
